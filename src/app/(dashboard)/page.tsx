@@ -9,21 +9,18 @@ export default async function Home() {
   const { count: messagesCount } = await supabase.from('messages').select('*', { count: 'exact', head: true });
 
   const totalUsers = users?.length || 0;
-  const activeUsers = users?.filter(u => u.status === 'Active').length || 0;
 
-  // Mocking "new signups" logic based on created_at if available, otherwise 0
+  // Calculate new signups (users created in the last month)
   const oneMonthAgo = new Date();
   oneMonthAgo.setMonth(oneMonthAgo.getMonth() - 1);
   const newSignups = users?.filter(u => new Date(u.created_at) > oneMonthAgo).length || 0;
 
   const mappedUsers = users?.map(u => ({
     id: u.id,
-    name: u.name,
+    firstName: u.first_name,
+    lastName: u.last_name,
     email: u.email,
-    role: u.role,
-    status: u.status,
-    lastActive: u.last_active,
-    avatar: u.avatar
+    profilePicture: u.profile_picture
   })) || [];
 
   return (
@@ -34,7 +31,6 @@ export default async function Home() {
       <div className="space-y-4">
         <StatsCards
           totalUsers={totalUsers}
-          activeUsers={activeUsers}
           newSignups={newSignups}
           messagesSent={messagesCount || 0}
         />

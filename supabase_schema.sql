@@ -1,12 +1,10 @@
--- Create users table if it doesn't exist
+-- Updated users table schema
 CREATE TABLE IF NOT EXISTS public.users (
     id UUID DEFAULT gen_random_uuid() PRIMARY KEY,
-    name TEXT NOT NULL,
+    first_name TEXT NOT NULL,
+    last_name TEXT,
     email TEXT NOT NULL UNIQUE,
-    role TEXT DEFAULT 'User',
-    status TEXT DEFAULT 'Active',
-    last_active TIMESTAMP WITH TIME ZONE DEFAULT NOW(),
-    avatar TEXT,
+    profile_picture TEXT,
     created_at TIMESTAMP WITH TIME ZONE DEFAULT NOW()
 );
 

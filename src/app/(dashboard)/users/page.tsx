@@ -11,12 +11,10 @@ export default async function UsersPage() {
 
     const mappedUsers = users?.map(u => ({
         id: u.id,
-        name: u.name,
+        firstName: u.first_name,
+        lastName: u.last_name,
         email: u.email,
-        role: u.role,
-        status: u.status,
-        lastActive: u.last_active,
-        avatar: u.avatar
+        profilePicture: u.profile_picture
     })) || []
 
     return (

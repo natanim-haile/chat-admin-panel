@@ -2,7 +2,7 @@
 
 import Link from "next/link"
 import { usePathname } from "next/navigation"
-import { LayoutDashboard, Users, MessageSquare, Mail, Calendar, BarChart, Settings, LogOut, Bell } from "lucide-react"
+import { LayoutDashboard, Users, MessageSquare, Mail, Calendar, BarChart, LogOut, Bell } from "lucide-react"
 
 import { cn } from "@/lib/utils"
 import { Button } from "@/components/ui/button"
@@ -48,10 +48,7 @@ export function Sidebar({ className }: SidebarProps) {
                         Settings
                     </h2>
                     <div className="space-y-1">
-                        <Button variant="ghost" className="w-full justify-start">
-                            <Settings className="mr-2 h-4 w-4" />
-                            Settings
-                        </Button>
+
                         <Button variant="ghost" className="w-full justify-start text-red-500 hover:text-red-500 hover:bg-red-50">
                             <LogOut className="mr-2 h-4 w-4" />
                             Logout
