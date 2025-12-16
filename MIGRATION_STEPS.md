@@ -50,4 +50,4 @@ LIMIT 5;
 ## After running the SQL:
 
 1. The code changes have been reverted to use `first_name`, `last_name`, and `profile_picture`
-2. The Prisma schema needs to be updated to match the new database structure
+2. Update any database client or schema configuration to match the new database structure
