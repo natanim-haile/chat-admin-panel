@@ -1,5 +1,7 @@
 generator client {
-  provider = "prisma-client-js"
+// Prisma schema removed from project. Restore a valid schema.prisma if you re-enable Prisma.
+
+// provider = "prisma-client-js"
 }
 
 datasource db {

@@ -1,8 +1,7 @@
-// import { PrismaClient } from '@prisma/client'
+// Prisma client removed from this project.
+// This file is kept as a stub to avoid import errors during build.
 
-// const globalForPrisma = globalThis as unknown as { prisma: PrismaClient }
+export const prisma = null;
 
-// export const prisma = globalForPrisma.prisma || new PrismaClient()
-
-// if (process.env.NODE_ENV !== 'production') globalForPrisma.prisma = prisma
+// If you need database access, replace usages of `prisma` with your chosen DB client (e.g., Supabase client in `src/lib/supabase`).
 
