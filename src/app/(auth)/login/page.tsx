@@ -15,9 +15,9 @@ export default function LoginPage() {
     return (
         <Card>
             <CardHeader>
-                <CardTitle className="text-2xl">Login</CardTitle>
+                <CardTitle className="text-2xl">Admin Login</CardTitle>
                 <CardDescription>
-                    Enter your email below to login to your account
+                    Use an admin account (separate from chat users)
                 </CardDescription>
             </CardHeader>
             <form action={formAction}>
@@ -42,10 +42,7 @@ export default function LoginPage() {
                         Sign in
                     </Button>
                     <div className="text-center text-sm">
-                        Don&apos;t have an account?{" "}
-                        <Link href="/signup" className="underline">
-                            Sign up
-                        </Link>
+                        Don&apos;t have an admin account? <Link href="/signup" className="underline">Sign up</Link>
                     </div>
                 </CardFooter>
             </form>

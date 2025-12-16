@@ -33,16 +33,15 @@ export async function updateSession(request: NextRequest) {
     // And we need to allow public access to login/signup pages
     // But we DO want to ensure the session is refreshed if it exists.
 
-    const {
-        data: { user },
-    } = await supabase.auth.getUser()
+    const { data: { user } } = await supabase.auth.getUser()
 
-    if (
-        !user &&
-        !request.nextUrl.pathname.startsWith('/login') &&
-        !request.nextUrl.pathname.startsWith('/signup') &&
-        !request.nextUrl.pathname.startsWith('/auth')
-    ) {
+    const isPublic = (
+        request.nextUrl.pathname.startsWith('/login') ||
+        request.nextUrl.pathname.startsWith('/signup') ||
+        request.nextUrl.pathname.startsWith('/auth')
+    )
+
+    if (!user && !isPublic) {
         // no user, potentially respond by redirecting the user to the login page
         const url = request.nextUrl.clone()
         url.pathname = '/login'
@@ -50,13 +49,25 @@ export async function updateSession(request: NextRequest) {
     }
 
     // If user IS logged in and tries to go to login/signup, redirect to dashboard
-    if (
-        user &&
-        (request.nextUrl.pathname.startsWith('/login') || request.nextUrl.pathname.startsWith('/signup'))
-    ) {
+    if (user && isPublic) {
         const url = request.nextUrl.clone()
         url.pathname = '/'
         return NextResponse.redirect(url)
+    }
+
+    // For protected routes, ensure user is an admin (simple check)
+    if (user && !isPublic) {
+        const { data: admin } = await supabase
+            .from('admins')
+            .select('id')
+            .eq('auth_user_id', user.id)
+            .maybeSingle()
+
+        if (!admin) {
+            const url = request.nextUrl.clone()
+            url.pathname = '/login'
+            return NextResponse.redirect(url)
+        }
     }
 
     return supabaseResponse

@@ -15,9 +15,9 @@ export default function SignupPage() {
     return (
         <Card>
             <CardHeader>
-                <CardTitle className="text-2xl">Sign Up</CardTitle>
+                <CardTitle className="text-2xl">Admin Sign Up</CardTitle>
                 <CardDescription>
-                    Create an account to get started
+                    Create an admin account (separate from chat users)
                 </CardDescription>
             </CardHeader>
             <form action={formAction}>
@@ -46,10 +46,7 @@ export default function SignupPage() {
                         Create account
                     </Button>
                     <div className="text-center text-sm">
-                        Already have an account?{" "}
-                        <Link href="/login" className="underline">
-                            Sign in
-                        </Link>
+                        Already have admin access? <Link href="/login" className="underline">Sign in</Link>
                     </div>
                 </CardFooter>
             </form>

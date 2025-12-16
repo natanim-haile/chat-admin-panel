@@ -12,10 +12,22 @@ export async function login(prevState: any, formData: FormData) {
         password: formData.get('password') as string,
     }
 
-    const { error } = await supabase.auth.signInWithPassword(data)
+    const { data: signInResult, error } = await supabase.auth.signInWithPassword(data)
 
     if (error) {
         return { error: error.message }
+    }
+
+    // Check that this email is an admin
+    const { data: admin } = await supabase
+        .from('admins')
+        .select('id')
+        .eq('email', data.email)
+        .maybeSingle()
+
+    if (!admin) {
+        await supabase.auth.signOut()
+        return { error: 'Not an admin. Please use an admin account.' }
     }
 
     revalidatePath('/', 'layout')
@@ -36,11 +48,19 @@ export async function signup(prevState: any, formData: FormData) {
     }
 
     // Create the user
-    const { error } = await supabase.auth.signUp(data)
+    const { data: signUpData, error } = await supabase.auth.signUp(data)
 
     if (error) {
         return { error: error.message }
     }
+
+    // Add to admins table (simple, no extra security)
+    const authUserId = signUpData.user?.id
+    await supabase.from('admins').insert({
+        email: data.email,
+        name: (data.options?.data as any)?.name ?? null,
+        auth_user_id: authUserId,
+    }).single()
 
     // If email confirmation is enabled, we should probably tell the user to check their email.
     // For now, we'll redirect to a page ensuring them to check email or directly to login.

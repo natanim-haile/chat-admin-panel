@@ -34,9 +34,42 @@ END $$;
 ALTER TABLE public.users ENABLE ROW LEVEL SECURITY;
 ALTER TABLE public.messages ENABLE ROW LEVEL SECURITY;
 
--- Re-create policies to ensure they are correct (drops existing ones first)
+-- Re-create policies (authenticated-only, minimal guard)
 DROP POLICY IF EXISTS "Public users access" ON public.users;
-CREATE POLICY "Public users access" ON public.users FOR ALL USING (true) WITH CHECK (true);
+CREATE POLICY "Users authenticated read" ON public.users
+  FOR SELECT
+  TO authenticated
+  USING (true);
 
 DROP POLICY IF EXISTS "Public messages access" ON public.messages;
-CREATE POLICY "Public messages access" ON public.messages FOR ALL USING (true) WITH CHECK (true);
+CREATE POLICY "Messages authenticated read" ON public.messages
+  FOR SELECT
+  TO authenticated
+  USING (true);
+
+CREATE POLICY "Messages authenticated insert" ON public.messages
+  FOR INSERT
+  TO authenticated
+  WITH CHECK (auth.uid() = sender_id);
+
+-- Allow only authenticated admins to create chat users
+-- Requires a table public.admins(email TEXT, name TEXT, auth_user_id UUID)
+DROP POLICY IF EXISTS "Users authenticated insert" ON public.users;
+DROP POLICY IF EXISTS "Admins can insert users" ON public.users;
+CREATE POLICY "Admins can insert users" ON public.users
+  FOR INSERT
+  TO authenticated
+  WITH CHECK (
+    EXISTS (
+      SELECT 1 FROM public.admins a
+      WHERE a.auth_user_id = auth.uid()
+         OR a.email = auth.jwt() ->> 'email'
+    )
+  );
+
+-- TEMPORARY: allow any authenticated user to insert users (drop when admin rows are fixed)
+DROP POLICY IF EXISTS "Users authenticated insert (temp)" ON public.users;
+CREATE POLICY "Users authenticated insert (temp)" ON public.users
+  FOR INSERT
+  TO authenticated
+  WITH CHECK (true);

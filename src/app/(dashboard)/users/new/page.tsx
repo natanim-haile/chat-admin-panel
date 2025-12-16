@@ -28,17 +28,18 @@ export default function NewUserPage() {
         const formData = new FormData(event.currentTarget)
         const name = formData.get("name") as string
         const email = formData.get("email") as string
-        const role = formData.get("role") as string
 
         // Simple avatar logic for now - ideally prompt file upload to Storage
-        const avatar = `https://api.dicebear.com/7.x/avataaars/svg?seed=${name}`
+        const avatar = `https://api.dicebear.com/7.x/avataaars/svg?seed=${encodeURIComponent(name)}`
+
+        const [first_name, ...rest] = name.trim().split(" ")
+        const last_name = rest.join(" ") || null
 
         const { error } = await supabase.from('users').insert({
-            name,
+            first_name,
+            last_name,
             email,
-            role,
-            avatar,
-            status: 'Active'
+            profile_picture: avatar
         })
 
         if (error) {
@@ -76,19 +77,7 @@ export default function NewUserPage() {
                             <Input id="email" name="email" type="email" required placeholder="john@example.com" />
                         </div>
 
-                        <div className="space-y-2">
-                            <Label htmlFor="role">Role</Label>
-                            <Select name="role" defaultValue="User">
-                                <SelectTrigger>
-                                    <SelectValue />
-                                </SelectTrigger>
-                                <SelectContent>
-                                    <SelectItem value="User">User</SelectItem>
-                                    <SelectItem value="Admin">Admin</SelectItem>
-                                    <SelectItem value="Moderator">Moderator</SelectItem>
-                                </SelectContent>
-                            </Select>
-                        </div>
+                        {/* Role removed from public.users schema; admins are managed separately */}
 
                         <div className="pt-4 flex justify-end">
                             <Button type="submit" disabled={loading}>

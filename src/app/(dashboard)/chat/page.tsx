@@ -13,18 +13,20 @@ interface Message {
     id: string
     content: string
     sender_id: string
+    receiver_id: string | null
     created_at: string
 }
 
 interface ChatUser {
     id: string
     name: string
-    avatar: string
-    status: string
+    avatar: string | null
 }
 
 export default function ChatPage() {
     const [messages, setMessages] = useState<Message[]>([])
+    const [hasMore, setHasMore] = useState(false)
+    const [isLoadingMore, setIsLoadingMore] = useState(false)
     const [users, setUsers] = useState<ChatUser[]>([])
     const [selectedUser, setSelectedUser] = useState<ChatUser | null>(null)
     const [newMessage, setNewMessage] = useState("")
@@ -35,7 +37,14 @@ export default function ChatPage() {
         // Fetch users
         const fetchUsers = async () => {
             const { data } = await supabase.from('users').select('*')
-            if (data) setUsers(data)
+            if (data) {
+                const mapped = data.map((u: any) => ({
+                    id: u.id,
+                    name: (u.first_name && u.last_name) ? `${u.first_name} ${u.last_name}` : (u.first_name || u.last_name || u.email || 'User'),
+                    avatar: u.profile_picture || u.avatar || null,
+                }))
+                setUsers(mapped)
+            }
 
             // Just for demo, try to get current user from session or pick first 'Admin'
             const { data: { user } } = await supabase.auth.getUser()
@@ -47,26 +56,92 @@ export default function ChatPage() {
             }
         }
         fetchUsers()
+    }, [])
 
-        // Fetch initial messages
-        const fetchMessages = async () => {
-            const { data } = await supabase.from('messages').select('*').order('created_at', { ascending: true })
-            if (data) setMessages(data)
+    // Load and subscribe to the selected conversation only
+    useEffect(() => {
+        if (!selectedUser || !currentUser?.id) {
+            setMessages([])
+            return
         }
-        fetchMessages()
 
-        // Realtime subscription
+        let isActive = true
+        const PAGE_SIZE = 30
+        const loadConversation = async () => {
+            const orExpr = `and(sender_id.eq.${selectedUser.id},receiver_id.eq.${currentUser.id}),and(sender_id.eq.${currentUser.id},receiver_id.eq.${selectedUser.id})`
+            const { data, error } = await supabase
+                .from('messages')
+                .select('id, content, sender_id, receiver_id, created_at')
+                .or(orExpr)
+                .order('created_at', { ascending: false })
+                .limit(PAGE_SIZE)
+            if (!isActive) return
+            if (!error && data) {
+                const asc = [...(data as Message[])].reverse()
+                setMessages(asc)
+                setHasMore((data as Message[]).length === PAGE_SIZE)
+            }
+        }
+        setMessages([])
+        loadConversation()
+
+        const chanName = `messages:${currentUser.id}:${selectedUser.id}`
         const channel = supabase
-            .channel('public:messages')
-            .on('postgres_changes', { event: 'INSERT', schema: 'public', table: 'messages' }, (payload) => {
-                setMessages((prev) => [...prev, payload.new as Message])
-            })
+            .channel(chanName)
+            .on(
+                'postgres_changes',
+                { event: 'INSERT', schema: 'public', table: 'messages', filter: `sender_id=eq.${selectedUser.id}` },
+                (payload) => {
+                    const m = payload.new as Message
+                    if (m.receiver_id === currentUser.id) {
+                        setMessages((prev) => [...prev, m])
+                    }
+                }
+            )
+            .on(
+                'postgres_changes',
+                { event: 'INSERT', schema: 'public', table: 'messages', filter: `sender_id=eq.${currentUser.id}` },
+                (payload) => {
+                    const m = payload.new as Message
+                    if (m.receiver_id === selectedUser.id) {
+                        setMessages((prev) => [...prev, m])
+                    }
+                }
+            )
             .subscribe()
 
         return () => {
+            isActive = false
             supabase.removeChannel(channel)
         }
-    }, [])
+    }, [selectedUser?.id, currentUser?.id])
+
+    const loadOlderMessages = async () => {
+        if (!selectedUser || !currentUser?.id) return
+        if (messages.length === 0) return
+        setIsLoadingMore(true)
+
+        try {
+            const oldest = messages[0]?.created_at
+            const orExpr = `and(sender_id.eq.${selectedUser.id},receiver_id.eq.${currentUser.id}),and(sender_id.eq.${currentUser.id},receiver_id.eq.${selectedUser.id})`
+            const PAGE_SIZE = 30
+            const { data, error } = await supabase
+                .from('messages')
+                .select('id, content, sender_id, receiver_id, created_at')
+                .or(orExpr)
+                .lt('created_at', oldest)
+                .order('created_at', { ascending: false })
+                .limit(PAGE_SIZE)
+
+            if (!error && data) {
+                const olderAsc = [...(data as Message[])].reverse()
+                setMessages((prev) => [...olderAsc, ...prev])
+                setHasMore((data as Message[]).length === PAGE_SIZE)
+            }
+        } finally {
+            setIsLoadingMore(false)
+        }
+    }
 
     useEffect(() => {
         if (scrollRef.current) {
@@ -78,9 +153,12 @@ export default function ChatPage() {
         e.preventDefault()
         if (!newMessage.trim() || !currentUser) return
 
+        if (!selectedUser) return
+
         const { error } = await supabase.from('messages').insert({
             content: newMessage,
-            sender_id: currentUser.id
+            sender_id: currentUser.id,
+            receiver_id: selectedUser.id
         })
 
         if (!error) {
@@ -102,12 +180,11 @@ export default function ChatPage() {
                                 className={`flex items-center gap-3 p-3 rounded-lg cursor-pointer transition-colors ${selectedUser?.id === user.id ? 'bg-accent text-accent-foreground' : 'hover:bg-accent/50 text-foreground'}`}
                             >
                                 <Avatar>
-                                    <AvatarImage src={user.avatar} />
-                                    <AvatarFallback>{user.name.slice(0, 2)}</AvatarFallback>
+                                    <AvatarImage src={user.avatar || undefined} />
+                                    <AvatarFallback>{(user.name || 'NA').slice(0, 2)}</AvatarFallback>
                                 </Avatar>
                                 <div>
                                     <p className="font-medium text-sm">{user.name}</p>
-                                    <p className="text-xs text-muted-foreground">{user.status}</p>
                                 </div>
                             </div>
                         ))}
@@ -122,15 +199,11 @@ export default function ChatPage() {
                     {selectedUser ? (
                         <>
                             <Avatar>
-                                <AvatarImage src={selectedUser.avatar} />
-                                <AvatarFallback>{selectedUser.name.slice(0, 2)}</AvatarFallback>
+                                <AvatarImage src={selectedUser.avatar || undefined} />
+                                <AvatarFallback>{(selectedUser.name || 'NA').slice(0, 2)}</AvatarFallback>
                             </Avatar>
                             <div>
                                 <h3 className="font-bold">{selectedUser.name}</h3>
-                                <div className="text-xs text-green-500 flex items-center gap-1">
-                                    <span className="w-2 h-2 rounded-full bg-green-500 inline-block"></span>
-                                    Online
-                                </div>
                             </div>
                         </>
                     ) : (
@@ -141,7 +214,14 @@ export default function ChatPage() {
                 {/* Messages */}
                 <ScrollArea className="flex-1 p-4 bg-muted/20">
                     <div className="space-y-4">
-                        {messages.map((msg) => {
+                        {selectedUser && hasMore ? (
+                            <div className="flex justify-center">
+                                <Button variant="ghost" size="sm" onClick={loadOlderMessages} disabled={isLoadingMore}>
+                                    {isLoadingMore ? 'Loading…' : 'Load older messages'}
+                                </Button>
+                            </div>
+                        ) : null}
+                                                { messages.map((msg) => {
                             const isMe = msg.sender_id === currentUser?.id
                             return (
                                 <div key={msg.id} className={`flex ${isMe ? 'justify-end' : 'justify-start'}`}>
