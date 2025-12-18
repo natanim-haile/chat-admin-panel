@@ -2,10 +2,12 @@
 
 import Link from "next/link"
 import { usePathname } from "next/navigation"
-import { LayoutDashboard, Users, MessageSquare, Mail, Calendar, BarChart, LogOut, Bell } from "lucide-react"
+import { LayoutDashboard, Users, MessageSquare, Mail, Calendar, BarChart, LogOut, Bell, FileText, UserCheck } from "lucide-react"
 
 import { cn } from "@/lib/utils"
 import { Button } from "@/components/ui/button"
+
+import { signout } from "@/app/auth/actions"
 
 interface SidebarProps extends React.HTMLAttributes<HTMLDivElement> { }
 
@@ -18,6 +20,8 @@ export function Sidebar({ className }: SidebarProps) {
         { name: "Chat", icon: MessageSquare, href: "/chat" },
         { name: "Notifications", icon: Bell, href: "/notifications" },
         { name: "Emails", icon: Mail, href: "/emails" },
+        { name: "Reports", icon: FileText, href: "/reports" },
+        { name: "Subscriptions", icon: UserCheck, href: "/subscriptions" },
     ]
 
     return (
@@ -49,7 +53,7 @@ export function Sidebar({ className }: SidebarProps) {
                     </h2>
                     <div className="space-y-1">
 
-                        <Button variant="ghost" className="w-full justify-start text-red-500 hover:text-red-500 hover:bg-red-50">
+                        <Button onClick={() => signout()} variant="ghost" className="w-full justify-start text-red-500 hover:text-red-500 hover:bg-red-50">
                             <LogOut className="mr-2 h-4 w-4" />
                             Logout
                         </Button>

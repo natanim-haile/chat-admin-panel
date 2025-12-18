@@ -1,18 +1,29 @@
 import * as admin from 'firebase-admin'
 
-// Initialize Firebase Admin SDK
-if (!admin.apps.length) {
+// Guarded Firebase Admin SDK initialization to avoid throwing during build
+const firebaseProjectId = process.env.FIREBASE_PROJECT_ID
+const firebaseClientEmail = process.env.FIREBASE_CLIENT_EMAIL
+const firebasePrivateKey = process.env.FIREBASE_PRIVATE_KEY
+
+const hasFirebaseCreds =
+    typeof firebaseProjectId === 'string' && firebaseProjectId &&
+    typeof firebaseClientEmail === 'string' && firebaseClientEmail &&
+    typeof firebasePrivateKey === 'string' && firebasePrivateKey
+
+if (hasFirebaseCreds && !admin.apps.length) {
     try {
         admin.initializeApp({
             credential: admin.credential.cert({
-                projectId: process.env.FIREBASE_PROJECT_ID,
-                clientEmail: process.env.FIREBASE_CLIENT_EMAIL,
-                privateKey: process.env.FIREBASE_PRIVATE_KEY?.replace(/\\n/g, '\n'),
+                projectId: firebaseProjectId,
+                clientEmail: firebaseClientEmail,
+                privateKey: firebasePrivateKey.replace(/\\n/g, '\n'),
             }),
         })
     } catch (error) {
         console.error('Firebase admin initialization error:', error)
     }
+} else if (!hasFirebaseCreds) {
+    console.warn('Firebase Admin not initialized: missing service account environment variables')
 }
 
 export async function sendPushNotification(tokens: string[], title: string, body: string) {

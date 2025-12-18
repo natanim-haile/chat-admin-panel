@@ -17,11 +17,11 @@ export default function LoginPage() {
             <CardHeader>
                 <CardTitle className="text-2xl">Admin Login</CardTitle>
                 <CardDescription>
-                    Use an admin account (separate from chat users)
+                    Use an admin account
                 </CardDescription>
             </CardHeader>
             <form action={formAction}>
-                <CardContent className="grid gap-4">
+                <CardContent className="grid gap-4 mb-5">
                     {state?.error && (
                         <div className="text-sm text-red-500 font-medium">
                             {state.error}
